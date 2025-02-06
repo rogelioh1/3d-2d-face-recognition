@@ -141,36 +141,32 @@ class KinectApp(QMainWindow):
                 predicted_label, confidence, probabilities = predict(self.model, depth_tensor, self.label_mapping)
                 recognized_people.append(predicted_label if predicted_label else "unknown")
                 
-                # Use face_recognition for 2D name detection
+                # Use face_recognition for 2D name detection and overlay text on separate lines
                 face_locations = face_recognition.face_locations(face_rgb)
+                name = "unknown"
                 if face_locations:
                     face_rgb_converted = cv2.cvtColor(face_rgb, cv2.COLOR_BGR2RGB)
                     face_encodings = face_recognition.face_encodings(face_rgb_converted)
-                    name = "unknown"
                     if face_encodings:
                         face_encoding = face_encodings[0]
                         matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
                         if True in matches:
                             name = known_face_names[matches.index(True)]
-                    
-                    # Overlay text based on model prediction and recognized name
-                    if name != "unknown":
-                        if predicted_label == "positive":
-                            cv2.putText(rgb_frame, f"3d: {name}", (x, y - 10),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                        elif predicted_label == "negative":
-                            cv2.putText(rgb_frame, f"flat image: {name}", (x, y - 10),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
-                    else:
-                        if predicted_label == "positive":
-                            cv2.putText(rgb_frame, "3d: positive", (x, y - 10),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                        # If predicted_label is negative and no name, do not overlay any text.
+                    # Draw name on the upper line
+                    cv2.putText(rgb_frame, f"Name: {name}", (x, y - 30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                # Draw detection status on a separate line
+                if predicted_label == "positive":
+                    status_text = "3d"
+                    status_color = (0, 255, 0)
+                elif predicted_label == "negative":
+                    status_text = "flat image"
+                    status_color = (0, 0, 255)
                 else:
-                    if predicted_label == "positive":
-                        cv2.putText(rgb_frame, "3d: positive", (x, y - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                    # If predicted_label is negative, do not overlay any text.
+                    status_text = ""
+                if status_text:
+                    cv2.putText(rgb_frame, status_text, (x, y - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
 
         # Display the number of people detected and their names
         message = f"I see {people_count} person(s)"
